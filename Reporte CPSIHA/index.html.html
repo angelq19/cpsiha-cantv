@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CANTV - Sistema CPSIHA de Inspección y Reportes</title>
+  <style>
+    :root {
+      --primary: #004b87;
+      --secondary: #0072ce;
+      --card-bg: rgba(255, 255, 255, 0.96);
+      --border: #cbd5e1;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #d97706;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #1e293b;
+      background: linear-gradient(-45deg, #07192f, #003366, #005a9e, #0e3d67);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .bg-bubbles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      animation: float 20s infinite linear;
+    }
+    .bubble:nth-child(1) { width: 90px; height: 90px; left: 10%; animation-duration: 18s; }
+    .bubble:nth-child(2) { width: 150px; height: 150px; left: 35%; animation-duration: 25s; }
+    .bubble:nth-child(3) { width: 70px; height: 70px; left: 70%; animation-duration: 14s; }
+    .bubble:nth-child(4) { width: 120px; height: 120px; left: 85%; animation-duration: 22s; }
+
+    @keyframes float {
+      0% { transform: translateY(110vh) scale(0.8); opacity: 0; }
+      20% { opacity: 0.6; }
+      80% { opacity: 0.6; }
+      100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+    }
+
+    header {
+      background: rgba(0, 43, 85, 0.95);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .logo-badge {
+      background: white;
+      color: var(--primary);
+      font-weight: 900;
+      font-size: 20px;
+      padding: 4px 14px;
+      border-radius: 6px;
+      letter-spacing: -1px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease;
+      display: inline-block;
+    }
+    .logo-badge:active {
+      transform: scale(0.92);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .main-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1150px;
+      margin: 15px auto;
+      padding: 0 12px;
+    }
+
+    nav {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    nav button {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px 8px 0 0;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.25s;
+      flex-grow: 1;
+      text-align: center;
+    }
+    nav button.active {
+      background: var(--card-bg);
+      color: var(--primary);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      backdrop-filter: blur(6px);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin: 18px 0 12px 0;
+      letter-spacing: 0.5px;
+    }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; }
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      width: 100%;
+    }
+    input:read-only { background: #e2e8f0; cursor: not-allowed; }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.4; }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .check-item { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      font-size: 12px; 
+      cursor: pointer; 
+      padding: 4px 2px;
+    }
+    .check-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    /* CONTENEDOR RESPONSIVO DE TABLAS */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; background: white; min-width: 550px; }
+    table th, table td { border: 1px solid var(--border); padding: 8px; font-size: 12px; text-align: left; }
+    table th { background: #f1f5f9; color: #334155; }
+
+    .btn {
+      padding: 9px 15px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+
+    /* MODAL DE LOGIN */
+    #loginModal {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(14, 46, 80, 0.94) 0%, rgba(4, 15, 27, 0.98) 100%);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 15px;
+    }
+    .login-box {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 30px 22px;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 30px rgba(0, 114, 206, 0.25);
+      backdrop-filter: blur(16px);
+      color: #f8fafc;
+    }
+    .login-box label {
+      color: #cbd5e1;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    .login-box select, .login-box input {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .login-box select:focus, .login-box input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+    .login-box select option {
+      background: #0f172a;
+      color: #ffffff;
+    }
+
+    .photos-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .photo-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px;
+      background: white;
+      text-align: center;
+    }
+    .photo-card img { width: 100%; height: 110px; object-fit: cover; border-radius: 4px; }
+
+    /* REGLAS ESPECÍFICAS PARA MÓVILES (PANTALLAS MENORES A 768px) */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 10px 14px;
+      }
+      .user-pill {
+        justify-content: space-between;
+        width: 100%;
+      }
+      .card {
+        padding: 15px;
+      }
+      nav button {
+        font-size: 12px;
+        padding: 9px 8px;
+      }
+      .checkbox-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      #btnGuardar {
+        width: 100%;
+      }
+    }
+
+    /* ESTILOS DE IMPRESIÓN OFICIAL (PDF) */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printAreaIsolated, #printAreaIsolated * {
+        visibility: visible !important;
+      }
+      #printAreaIsolated {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .page-cantv {
+        padding: 10mm;
+        border: 2px solid #000;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        width: 100%;
+      }
+      .print-box-text {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+        margin-top: 4px !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BURBUJAS DECORATIVAS -->
+  <div class="bg-bubbles no-print">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <!-- MODAL DE ACCESO -->
+  <div id="loginModal" class="no-print">
+    <div class="login-box">
+      <div style="text-align:center; margin-bottom:20px;">
+        <span class="logo-badge" onclick="clickLogoAdmin()" title="Acceso al sistema" style="font-size:24px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">cantv</span>
+        <h2 style="color:#ffffff; margin:12px 0 2px 0; font-size:18px; font-weight:800; letter-spacing:0.5px;">SISTEMA CPSIHA</h2>
+        <p style="font-size:12px; color:#94a3b8; margin:0;">Gestión Técnica e Inspecciones</p>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Usuario</label>
+        <select id="loginUserSelect"></select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="Clave de acceso">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:6px;">
+        <span style="font-size:11px; color:#94a3b8;">Clave por defecto: 1234</span>
+        <a href="javascript:void(0)" onclick="solicitarRecuperacion()" style="font-size:11px; color:#38bdf8; text-decoration:none; font-weight:600;">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; padding:12px; font-size:13px; font-weight:bold; background: linear-gradient(135deg, #0072ce 0%, #004b87 100%); border:none; box-shadow:0 4px 15px rgba(0, 114, 206, 0.4);" onclick="autenticar()">Ingresar al Sistema</button>
+    </div>
+  </div>
+
+  <!-- CABECERA -->
+  <header class="no-print">
+    <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+      <span class="logo-badge" onclick="clickLogoAdmin()" title="Haz 3 clics seguidos para acceso maestro">cantv</span>
+      <span style="font-size:14px; font-weight:700; letter-spacing:0.5px;">CPSIHA • GESTIÓN TÉCNICA</span>
+    </div>
+    <div class="user-pill">
+      <div>
+        <span style="display:block; font-weight:700; font-size:12px;" id="lblUsuario">Sin Sesión</span>
+        <span style="font-size:11px; color:#93c5fd;" id="lblRol">Desconectado</span>
+      </div>
+      <div style="display:flex; gap:5px;">
+        <button class="btn btn-warning" style="padding:5px 8px; font-size:11px;" onclick="cambiarMiPassword()">Cambiar Clave</button>
+        <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px;" onclick="cerrarSesion()">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-wrapper no-print">
+    <nav>
+      <button id="navNuevo" class="active" onclick="verPestana('form')">Nuevo Reporte</button>
+      <button id="navBandeja" onclick="verPestana('supervision')">Bandeja (<span id="totalBadge">0</span>)</button>
+      <button id="navAdmin" style="display:none;" onclick="verPestana('admin')">Panel Admin</button>
+    </nav>
+
+    <!-- FORMULARIO TÉCNICO -->
+    <div id="viewForm" class="card">
+      <div id="avisoSupervisorBloqueo" style="display:none; padding:12px; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:8px; margin-bottom:15px; font-size:12px;">
+        Atención: Estás en sesión de Coordinación, Supervisión o Especialista. Los técnicos oficiales asignados (Ángel, Larry o Ermes) realizan los reportes; tú estás facultado para verificar, autorizar, imprimir o auditar en la Bandeja de Reportes.
+      </div>
+
+      <div class="section-title">1. Datos Generales de Instalación</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>N° Reporte (Automático)</label>
+          <input type="text" id="repNumero" readonly>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Inspección (Automática)</label>
+          <input type="date" id="repFecha" readonly>
+        </div>
+        <div class="form-group">
+          <label>Instalación / Central</label>
+          <input type="text" id="repCentral" spellcheck="true" placeholder="Ej: CENTRAL SAN CRISTOBAL PAGO 14/02/26">
+        </div>
+        <div class="form-group">
+          <label>Especialista Responsable</label>
+          <input type="text" id="repTecnico" readonly>
+        </div>
+      </div>
+
+      <!-- TIPO DE ACTIVIDAD Y SISTEMA -->
+      <div class="form-grid" style="margin-top:10px;">
+        <div>
+          <div class="section-title">Tipo de Actividad</div>
+          <div class="checkbox-grid" id="grpActividad">
+            <label class="check-item"><input type="checkbox" value="PREVENTIVO"> PREVENTIVO</label>
+            <label class="check-item"><input type="checkbox" value="INSP. RUTINA"> INSP. RUTINA</label>
+            <label class="check-item"><input type="checkbox" value="INSP. EMERGENTE"> INSP. EMERGENTE</label>
+            <label class="check-item"><input type="checkbox" value="CORRECTIVO"> CORRECTIVO</label>
+            <label class="check-item"><input type="checkbox" value="INSP. AUDITORIA"> INSP. AUDITORIA</label>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">Tipo de Sistema</div>
+          <div class="checkbox-grid" id="grpSistema">
+            <label class="check-item"><input type="checkbox" value="SDAI"> SDAI</label>
+            <label class="check-item"><input type="checkbox" value="FM-200"> FM-200</label>
+            <label class="check-item"><input type="checkbox" value="CO2"> CO2</label>
+            <label class="check-item"><input type="checkbox" value="HALON"> HALON</label>
+            <label class="check-item"><input type="checkbox" value="SIE."> SIE.</label>
+            <label class="check-item"><input type="checkbox" value="SFEIA"> SFEIA</label>
+            <label class="check-item"><input type="checkbox" value="SPEI"> SPEI</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODELO DE CENTRAL -->
+      <div class="section-title">Modelo de Central</div>
+      <div class="checkbox-grid" id="grpModelo">
+        <label class="check-item"><input type="checkbox" value="AM-1010"> AM-1010</label>
+        <label class="check-item"><input type="checkbox" value="AM-2020"> AM-2020</label>
+        <label class="check-item"><input type="checkbox" value="AM-3030"> AM-3030</label>
+        <label class="check-item"><input type="checkbox" value="AFP-200"> AFP-200</label>
+        <label class="check-item"><input type="checkbox" value="AFP-300"> AFP-300</label>
+        <label class="check-item"><input type="checkbox" value="AFP-400"> AFP-400</label>
+        <label class="check-item"><input type="checkbox" value="NFS(2)-320"> NFS(2)-320</label>
+        <label class="check-item"><input type="checkbox" value="NFS(2)-640"> NFS(2)-640</label>
+        <label class="check-item"><input type="checkbox" value="RP-2002"> RP-2002</label>
+        <label class="check-item"><input type="checkbox" value="SOVICA"> SOVICA</label>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; border-bottom: 2px solid #e2e8f0; padding-bottom:4px; flex-wrap:wrap; gap:5px;">
+        <div class="section-title" style="margin:0; border:none; padding:0;">Trabajos Realizados y Observaciones</div>
+        <button class="btn btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="corregirTexto('repTrabajos')">Auto-Corregir Ortografía</button>
+      </div>
+      <textarea id="repTrabajos" spellcheck="true" lang="es" onblur="autoCorrectorRapido(this)" placeholder="Detalle pruebas, limpieza de sensores ópticos, voltaje de baterías, canales atendidos..."></textarea>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; border-bottom: 2px solid #e2e8f0; padding-bottom:4px; flex-wrap:wrap; gap:5px;">
+        <div class="section-title" style="margin:0; border:none; padding:0;">Acciones Pendientes</div>
+        <button class="btn btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="corregirTexto('repPendientes')">Auto-Corregir Ortografía</button>
+      </div>
+      <textarea id="repPendientes" spellcheck="true" lang="es" onblur="autoCorrectorRapido(this)" placeholder="Repuestos necesarios, seguimiento técnico o pendientes de cuadrilla..."></textarea>
+
+      <div class="section-title">Condiciones Finales del Sistema</div>
+      <div class="checkbox-grid" id="grpCondiciones">
+        <label class="check-item"><input type="checkbox" value="100% Operativo"> 100% Operativo</label>
+        <label class="check-item"><input type="checkbox" value="Operativo con Avería"> Operativo con Avería</label>
+        <label class="check-item"><input type="checkbox" value="Fuera de Servicio"> Fuera de Servicio</label>
+        <label class="check-item"><input type="checkbox" value="Sistema Desconectado"> Sistema Desconectado</label>
+        <label class="check-item"><input type="checkbox" value="Sistema Descargado"> Sistema Descargado</label>
+        <label class="check-item"><input type="checkbox" value="Sistema Automático"> Sistema Automático</label>
+        <label class="check-item"><input type="checkbox" value="Sistema Manual"> Sistema Manual</label>
+      </div>
+
+      <div class="section-title">Elementos Reemplazados</div>
+      <div class="table-responsive">
+        <table id="tblReemplazos">
+          <thead>
+            <tr>
+              <th style="width:45px;">Item</th>
+              <th style="width:70px;">Cant.</th>
+              <th>Descripción</th>
+              <th>Ubicación</th>
+              <th style="width:50px;">Borrar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><input type="number" value="1" style="width:100%;"></td>
+              <td><input type="text" spellcheck="true" placeholder="Ej: Sensor fotoeléctrico de humo" style="width:100%;"></td>
+              <td><input type="text" spellcheck="true" placeholder="Ej: Sala de transmisión" style="width:100%;"></td>
+              <td><button class="btn btn-danger" style="padding:2px 8px;" onclick="eliminarFila(this)">x</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:8px; font-size:11px;" onclick="agregarFila()">+ Añadir Fila</button>
+
+      <div class="section-title">Reporte Fotográfico</div>
+      <input type="file" id="fotoInput" accept="image/*" onchange="cargarFoto(event)">
+      <div class="photos-container" id="fotosBox"></div>
+
+      <div style="margin-top:25px; text-align:right;">
+        <button id="btnGuardar" class="btn btn-success" style="padding:11px 26px; font-size:14px;" onclick="guardarReporte()">Guardar y Registrar Reporte</button>
+      </div>
+    </div>
+
+    <!-- BANDEJA DE SUPERVISIÓN -->
+    <div id="viewSupervision" class="card" style="display:none;">
+      <div class="section-title">Bandeja de Supervisión, Auditoría y Verificación</div>
+      <p style="font-size:12px; color:#475569;">Supervisores y Coordinadores pueden revisar reportes, validarlos, emitir impresión o borrarlos.</p>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>N° Reporte</th>
+              <th>Fecha</th>
+              <th>Instalación</th>
+              <th>Especialista</th>
+              <th>Supervisor Asignado</th>
+              <th>Estado</th>
+              <th style="width:200px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tblSupervisionBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANEL DE ADMINISTRACIÓN SECRETO -->
+    <div id="viewAdmin" class="card" style="display:none;">
+      <div class="section-title" style="color:var(--danger);">Panel Maestro de Administración (Acceso Chris24)</div>
+      <p style="font-size:12px; color:#475569;">Gestiona solicitudes de contraseñas, usuarios y cuadrillas.</p>
+
+      <!-- SOLICITUDES DE RECUPERACIÓN -->
+      <div style="background:#fffbeb; border:1px solid #fef3c7; padding:15px; border-radius:8px; margin-bottom:20px;">
+        <h4 style="margin:0 0 8px 0; font-size:13px; color:#b45309; text-transform:uppercase;">Solicitudes de Recuperación de Contraseña</h4>
+        <div id="contenedorSolicitudesRecuperacion">
+          <p style="font-size:12px; color:#78350f; margin:0;">No hay solicitudes pendientes.</p>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
+        <h4 style="margin:0 0 12px 0; font-size:13px; color:var(--primary); text-transform:uppercase;">Alta de Nuevo Personal</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" id="adminNewName" spellcheck="true" placeholder="Ej: PEDRO PEREZ">
+          </div>
+          <div class="form-group">
+            <label>Cargo / Rol</label>
+            <select id="adminNewRole" onchange="cambioRolAdmin()">
+              <option value="TECNICO">Técnico Oficial</option>
+              <option value="ESPECIALISTA">Especialista de Área</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <option value="COORDINADOR">Coordinador</option>
+            </select>
+          </div>
+          <div class="form-group" id="grpAdminSupervisor">
+            <label>Supervisor / Cuadrilla</label>
+            <select id="adminNewSup">
+              <option value="TORRES GUTIERREZ, CLAUDIA ELENA (Mantenimiento)">Supervisora Claudia (Mantenimiento)</option>
+              <option value="NOGUERA SUAREZ, MARIA BELEN (Proyectos)">Supervisora Belén (Proyectos)</option>
+              <option value="MENDOZA BLANCO, MARQUES ALEXIS">Supervisor Marques</option>
+              <option value="ELEIZALDE APONTE, LEOPOLDO A.">Coordinador Leopoldo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Contraseña Asignada</label>
+            <input type="text" id="adminNewPass" value="1234">
+          </div>
+        </div>
+        <div style="margin-top:12px; text-align:right;">
+          <button class="btn btn-primary" onclick="adminCrearUsuario()">+ Guardar y Dar de Alta</button>
+        </div>
+      </div>
+
+      <h4 style="margin:15px 0 8px 0; font-size:13px; color:var(--primary); text-transform:uppercase;">Listado de Personal</h4>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre y Apellido</th>
+              <th>Rol</th>
+              <th>Supervisor / Cuadrilla</th>
+              <th>Clave Actual</th>
+              <th style="width:180px;">Acciones Admin</th>
+            </tr>
+          </thead>
+          <tbody id="tblAdminUsersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="printAreaIsolated" style="display:none;"></div>
+
+  <script>
+    // BASE DE DATOS ESTRUCTURADA
+    const USUARIOS_BASE = [
+      { id: 1, name: "ELEIZALDE APONTE, LEOPOLDO A.", role: "COORDINADOR", supervisor: "Coordinación General", pass: "1234" },
+      { id: 2, name: "TORRES GUTIERREZ, CLAUDIA ELENA", role: "SUPERVISOR", supervisor: "Supervisora Mantenimiento", pass: "1234" },
+      { id: 3, name: "MARTINEZ ROMERO CRUZ BETZABETH", role: "ESPECIALISTA", supervisor: "TORRES GUTIERREZ, CLAUDIA ELENA (Mantenimiento)", pass: "1234" },
+      { id: 4, name: "LARRY ALEXANDER RODRIGUEZ MARTINEZ", role: "TECNICO", supervisor: "TORRES GUTIERREZ, CLAUDIA ELENA (Mantenimiento)", pass: "1234" },
+      { id: 5, name: "VELOZ MENDOZA, ROWAN SALATIEL", role: "ESPECIALISTA", supervisor: "TORRES GUTIERREZ, CLAUDIA ELENA (Mantenimiento)", pass: "1234" },
+      { id: 6, name: "NOGUERA SUAREZ, MARIA BELEN", role: "SUPERVISOR", supervisor: "Supervisora Proyectos", pass: "1234" },
+      { id: 7, name: "MARTINEZ CEDENO URSULA CELESTE", role: "ESPECIALISTA", supervisor: "NOGUERA SUAREZ, MARIA BELEN (Proyectos)", pass: "1234" },
+      { id: 8, name: "MARIN DURAN, LUIS ALFREDO", role: "ESPECIALISTA", supervisor: "NOGUERA SUAREZ, MARIA BELEN (Proyectos)", pass: "1234" },
+      { id: 9, name: "MENDOZA BLANCO, MARQUES ALEXIS", role: "SUPERVISOR", supervisor: "Supervisor de Área", pass: "1234" },
+      { id: 10, name: "ERMES JESUS GONZALEZ MORALES", role: "TECNICO", supervisor: "MENDOZA BLANCO, MARQUES ALEXIS", pass: "1234" },
+      { id: 11, name: "QUINTANA SOSA, ANGEL CRISTOBAL", role: "TECNICO", supervisor: "MENDOZA BLANCO, MARQUES ALEXIS", pass: "1234" }
+    ];
+
+    let usuarios = JSON.parse(localStorage.getItem('cantv_usuarios_db_v5')) || USUARIOS_BASE;
+    let reportes = JSON.parse(localStorage.getItem('cantv_reportes_db_v3')) || [];
+    let solicitudesRecuperacion = JSON.parse(localStorage.getItem('cantv_solicitudes_recup_v3')) || [];
+    let usuarioActivo = null;
+    let fotosActuales = [];
+
+    // ACCESO MAESTRO (3 CLICS EN LOGO)
+    let logoClicks = 0;
+    let logoTimer = null;
+
+    function clickLogoAdmin() {
+      logoClicks++;
+      clearTimeout(logoTimer);
+      if (logoClicks >= 3) {
+        logoClicks = 0;
+        const pass = prompt('ACCESO MAESTRO DE ADMINISTRACIÓN:\nIngresa la contraseña maestra:');
+        if (pass === 'Chris24') {
+          activarModoAdmin();
+        } else if (pass !== null) {
+          alert('Contraseña incorrecta.');
+        }
+      } else {
+        logoTimer = setTimeout(() => { logoClicks = 0; }, 1200);
+      }
+    }
+
+    function activarModoAdmin() {
+      usuarioActivo = { id: 999, name: "ADMINISTRADOR MAESTRO", role: "ADMIN", supervisor: "Control Total", pass: "Chris24" };
+      document.getElementById('lblUsuario').innerText = "ADMINISTRADOR (Chris24)";
+      document.getElementById('lblRol').innerText = "Panel Maestro";
+      document.getElementById('navAdmin').style.display = 'inline-block';
+      document.getElementById('loginModal').style.display = 'none';
+      verPestana('admin');
+      alert('Bienvenido al Panel Maestro de Administración.');
+    }
+
+    window.onload = function() {
+      actualizarBadge();
+      poblarSelectLogin();
+      
+      const sesion = sessionStorage.getItem('cantv_sesion_activa_v3');
+      if (sesion) {
+        const u = JSON.parse(sesion);
+        aplicarSesion(u);
+      } else {
+        document.getElementById('loginModal').style.display = 'flex';
+      }
+    };
+
+    function poblarSelectLogin() {
+      const sel = document.getElementById('loginUserSelect');
+      sel.innerHTML = '';
+
+      const grpCoord = document.createElement('optgroup');
+      grpCoord.label = 'COORDINACIÓN GENERAL';
+      
+      const grpClaudia = document.createElement('optgroup');
+      grpClaudia.label = 'SUPERVISORA CLAUDIA (MANTENIMIENTO)';
+
+      const grpBelen = document.createElement('optgroup');
+      grpBelen.label = 'SUPERVISORA BELÉN (PROYECTOS)';
+
+      const grpMarques = document.createElement('optgroup');
+      grpMarques.label = 'SUPERVISOR MARQUES';
+
+      const grpOtros = document.createElement('optgroup');
+      grpOtros.label = 'OTROS REGISTRADOS';
+
+      usuarios.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.name} — [${u.role}]`;
+
+        if (u.role === 'COORDINADOR') {
+          grpCoord.appendChild(opt);
+        } else if (u.name.includes('CLAUDIA') || u.supervisor.includes('CLAUDIA')) {
+          grpClaudia.appendChild(opt);
+        } else if (u.name.includes('BELEN') || u.name.includes('BELÉN') || u.supervisor.includes('BELEN') || u.supervisor.includes('BELÉN')) {
+          grpBelen.appendChild(opt);
+        } else if (u.name.includes('MARQUES') || u.supervisor.includes('MARQUES')) {
+          grpMarques.appendChild(opt);
+        } else {
+          grpOtros.appendChild(opt);
+        }
+      });
+
+      if (grpCoord.children.length > 0) sel.appendChild(grpCoord);
+      if (grpClaudia.children.length > 0) sel.appendChild(grpClaudia);
+      if (grpBelen.children.length > 0) sel.appendChild(grpBelen);
+      if (grpMarques.children.length > 0) sel.appendChild(grpMarques);
+      if (grpOtros.children.length > 0) sel.appendChild(grpOtros);
+    }
+
+    function autenticar() {
+      const id = parseInt(document.getElementById('loginUserSelect').value);
+      const pass = document.getElementById('loginPass').value.trim();
+      const u = usuarios.find(x => x.id === id);
+
+      if (!u) {
+        alert('Usuario no válido');
+        return;
+      }
+
+      if (u.pass !== pass) {
+        alert('Contraseña incorrecta');
+        return;
+      }
+
+      sessionStorage.setItem('cantv_sesion_activa_v3', JSON.stringify(u));
+      aplicarSesion(u);
+      document.getElementById('loginModal').style.display = 'none';
+    }
+
+    function aplicarSesion(u) {
+      usuarioActivo = u;
+      document.getElementById('lblUsuario').innerText = u.name;
+      document.getElementById('lblRol').innerText = u.role + (u.supervisor !== 'N/A' ? ' (' + u.supervisor + ')' : '');
+
+      prepararFormulario();
+
+      if (u.role === 'ADMIN') {
+        document.getElementById('navAdmin').style.display = 'inline-block';
+        document.getElementById('avisoSupervisorBloqueo').style.display = 'block';
+        document.getElementById('btnGuardar').style.display = 'none';
+        verPestana('admin');
+      } else if (u.role === 'TECNICO') {
+        document.getElementById('navAdmin').style.display = 'none';
+        document.getElementById('avisoSupervisorBloqueo').style.display = 'none';
+        document.getElementById('btnGuardar').style.display = 'inline-block';
+        verPestana('form');
+      } else {
+        document.getElementById('navAdmin').style.display = 'none';
+        document.getElementById('avisoSupervisorBloqueo').style.display = 'block';
+        document.getElementById('btnGuardar').style.display = 'none';
+        verPestana('supervision');
+      }
+    }
+
+    function cerrarSesion() {
+      sessionStorage.removeItem('cantv_sesion_activa_v3');
+      location.reload();
+    }
+
+    function solicitarRecuperacion() {
+      const id = parseInt(document.getElementById('loginUserSelect').value);
+      const u = usuarios.find(x => x.id === id);
+      if (!u) {
+        alert('Selecciona tu usuario en la lista.');
+        return;
+      }
+
+      const motivo = prompt(`SOLICITUD DE RECUPERACIÓN PARA:\n${u.name}\n\nIngresa tu motivo breve:`, 'Olvidé mi contraseña');
+      if (motivo !== null) {
+        solicitudesRecuperacion.push({
+          id: Date.now(),
+          userId: u.id,
+          userName: u.name,
+          role: u.role,
+          supervisor: u.supervisor,
+          fecha: new Date().toLocaleString(),
+          motivo: motivo.trim() || 'Sin motivo especificado'
+        });
+        localStorage.setItem('cantv_solicitudes_recup_v3', JSON.stringify(solicitudesRecuperacion));
+        alert('Solicitud enviada con éxito. El administrador o supervisor restablecerá tu acceso.');
+      }
+    }
+
+    function cambiarMiPassword() {
+      if (!usuarioActivo) return;
+      const actual = prompt('Ingresa tu contraseña actual:');
+      if (actual !== usuarioActivo.pass) {
+        alert('La contraseña actual no coincide.');
+        return;
+      }
+
+      const nueva = prompt('Ingresa tu NUEVA contraseña:');
+      if (nueva && nueva.trim().length >= 3) {
+        const u = usuarios.find(x => x.id === usuarioActivo.id);
+        if (u) {
+          u.pass = nueva.trim();
+          usuarioActivo.pass = nueva.trim();
+          localStorage.setItem('cantv_usuarios_db_v5', JSON.stringify(usuarios));
+          sessionStorage.setItem('cantv_sesion_activa_v3', JSON.stringify(usuarioActivo));
+          alert('¡Tu contraseña ha sido actualizada con éxito!');
+        }
+      } else {
+        alert('La contraseña debe tener al menos 3 caracteres.');
+      }
+    }
+
+    function verPestana(p) {
+      const btnForm = document.getElementById('navNuevo');
+      const btnBand = document.getElementById('navBandeja');
+      const btnAdmin = document.getElementById('navAdmin');
+      const viewForm = document.getElementById('viewForm');
+      const viewSuper = document.getElementById('viewSupervision');
+      const viewAdmin = document.getElementById('viewAdmin');
+
+      btnForm.classList.remove('active');
+      btnBand.classList.remove('active');
+      btnAdmin.classList.remove('active');
+      viewForm.style.display = 'none';
+      viewSuper.style.display = 'none';
+      viewAdmin.style.display = 'none';
+
+      if (p === 'form') {
+        btnForm.classList.add('active');
+        viewForm.style.display = 'block';
+      } else if (p === 'supervision') {
+        btnBand.classList.add('active');
+        viewSuper.style.display = 'block';
+        renderizarSupervision();
+      } else if (p === 'admin') {
+        btnAdmin.classList.add('active');
+        viewAdmin.style.display = 'block';
+        renderizarAdminUsuarios();
+        renderizarSolicitudesRecuperacion();
+      }
+    }
+
+    function prepararFormulario() {
+      const hoy = new Date().toISOString().split('T')[0];
+      document.getElementById('repFecha').value = hoy;
+
+      const year = new Date().getFullYear();
+      const consecutivo = String(reportes.length + 1).padStart(4, '0');
+      document.getElementById('repNumero').value = `CPSIHA-${year}-${consecutivo}`;
+
+      if (usuarioActivo && usuarioActivo.role === 'TECNICO') {
+        document.getElementById('repTecnico').value = usuarioActivo.name;
+      } else {
+        document.getElementById('repTecnico').value = 'Asignado en inspección';
+      }
+    }
+
+    function actualizarBadge() {
+      document.getElementById('totalBadge').innerText = reportes.length;
+    }
+
+    // CORRECCIÓN ORTOGRÁFICA
+    const DICCIONARIO_CORRECCIONES = {
+      'inspeccion': 'inspección',
+      'inspecciones': 'inspecciones',
+      'optico': 'óptico',
+      'opticos': 'ópticos',
+      'bateria': 'batería',
+      'baterias': 'baterías',
+      'mantenimiento': 'mantenimiento',
+      'mantencion': 'mantenimiento',
+      'estacion': 'estación',
+      'estaciones': 'estaciones',
+      'modulos': 'módulos',
+      'modulo': 'módulo',
+      'valvula': 'válvula',
+      'valvulas': 'válvulas',
+      'sensro': 'sensor',
+      'sensores': 'sensores',
+      'operativo': 'operativo',
+      'averia': 'avería',
+      'averias': 'averías',
+      'revision': 'revisión',
+      'electrico': 'eléctrico',
+      'mecanico': 'mecánico',
+      'linea': 'línea',
+      'lineas': 'líneas',
+      'presion': 'presión',
+      'conexion': 'conexión',
+      'conexiones': 'conexiones',
+      'desconectado': 'desconectado',
+      'automatico': 'automático'
+    };
+
+    function autoCorrectorRapido(elemento) {
+      if (!elemento.value) return;
+      let palabras = elemento.value.split(/\b/);
+      let corregidas = palabras.map(p => {
+        let pMinus = p.toLowerCase();
+        if (DICCIONARIO_CORRECCIONES[pMinus]) {
+          if (p === p.toUpperCase()) {
+            return DICCIONARIO_CORRECCIONES[pMinus].toUpperCase();
+          } else if (p[0] === p[0].toUpperCase()) {
+            return DICCIONARIO_CORRECCIONES[pMinus].charAt(0).toUpperCase() + DICCIONARIO_CORRECCIONES[pMinus].slice(1);
+          }
+          return DICCIONARIO_CORRECCIONES[pMinus];
+        }
+        return p;
+      });
+      elemento.value = corregidas.join('');
+    }
+
+    function corregirTexto(id) {
+      const el = document.getElementById(id);
+      autoCorrectorRapido(el);
+      alert('Texto revisado y normalizado con acentos ortográficos.');
+    }
+
+    function agregarFila() {
+      const tb = document.querySelector('#tblReemplazos tbody');
+      const count = tb.rows.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${count}</td>
+        <td><input type="number" value="1" style="width:100%;"></td>
+        <td><input type="text" spellcheck="true" style="width:100%;"></td>
+        <td><input type="text" spellcheck="true" style="width:100%;"></td>
+        <td><button class="btn btn-danger" style="padding:2px 8px;" onclick="eliminarFila(this)">x</button></td>
+      `;
+      tb.appendChild(tr);
+    }
+
+    function eliminarFila(btn) {
+      btn.closest('tr').remove();
+    }
+
+    function cargarFoto(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const desc = prompt('Leyenda o descripción para la foto:', 'Evidencia fotográfica');
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let maxW = 900;
+          let scale = maxW / img.width;
+          if (scale > 1) scale = 1;
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressedSrc = canvas.toDataURL('image/jpeg', 0.85);
+
+          fotosActuales.push({
+            src: compressedSrc,
+            desc: desc || 'Evidencia técnica'
+          });
+          dibujarFotos();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function dibujarFotos() {
+      const box = document.getElementById('fotosBox');
+      box.innerHTML = '';
+      fotosActuales.forEach((f, idx) => {
+        const div = document.createElement('div');
+        div.className = 'photo-card';
+        div.innerHTML = `
+          <img src="${f.src}">
+          <p style="font-size:11px; margin:4px 0;">${f.desc}</p>
+          <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="fotosActuales.splice(${idx}, 1); dibujarFotos();">Quitar</button>
+        `;
+        box.appendChild(div);
+      });
+    }
+
+    function guardarReporte() {
+      if (!usuarioActivo || usuarioActivo.role !== 'TECNICO') {
+        alert('Solo el personal técnico oficial (Ángel, Larry o Ermes) puede registrar reportes.');
+        return;
+      }
+
+      const central = document.getElementById('repCentral').value.trim();
+      if (!central) {
+        alert('Ingresa el nombre de la Instalación o Central.');
+        return;
+      }
+
+      const getCheckValues = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(c => c.value);
+
+      const elementos = [];
+      document.querySelectorAll('#tblReemplazos tbody tr').forEach(r => {
+        const inputs = r.querySelectorAll('input');
+        if (inputs[1] && inputs[1].value.trim() !== '') {
+          elementos.push({
+            cant: inputs[0].value,
+            desc: inputs[1].value,
+            ubic: inputs[2].value
+          });
+        }
+      });
+
+      const nuevo = {
+        id: Date.now(),
+        numero: document.getElementById('repNumero').value,
+        fecha: document.getElementById('repFecha').value,
+        central: central,
+        tecnico: usuarioActivo.name,
+        supervisorAsignado: usuarioActivo.supervisor,
+        actividades: getCheckValues('grpActividad'),
+        sistemas: getCheckValues('grpSistema'),
+        modelos: getCheckValues('grpModelo'),
+        condiciones: getCheckValues('grpCondiciones'),
+        trabajos: document.getElementById('repTrabajos').value,
+        pendientes: document.getElementById('repPendientes').value,
+        elementos: elementos,
+        fotos: [...fotosActuales],
+        estado: 'Pendiente',
+        verificadoPor: 'Por revisar'
+      };
+
+      try {
+        reportes.push(nuevo);
+        localStorage.setItem('cantv_reportes_db_v3', JSON.stringify(reportes));
+      } catch (err) {
+        alert('Memoria llena. Borra reportes antiguos o fotos.');
+        return;
+      }
+
+      alert('Reporte guardado exitosamente.');
+      document.getElementById('repCentral').value = '';
+      document.getElementById('repTrabajos').value = '';
+      document.getElementById('repPendientes').value = '';
+      fotosActuales = [];
+      dibujarFotos();
+      actualizarBadge();
+      prepararFormulario();
+      verPestana('supervision');
+    }
+
+    function renderizarSupervision() {
+      const tbody = document.getElementById('tblSupervisionBody');
+      tbody.innerHTML = '';
+
+      if (reportes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:#64748b;">No hay reportes en la bandeja.</td></tr>';
+        return;
+      }
+
+      reportes.forEach((rep) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${rep.numero}</strong></td>
+          <td>${rep.fecha}</td>
+          <td>${rep.central}</td>
+          <td>${rep.tecnico}</td>
+          <td><span style="font-size:11px; color:#0369a1;">${rep.supervisorAsignado}</span></td>
+          <td>
+            <span style="padding:3px 8px; border-radius:4px; font-weight:700; font-size:11px; background:${rep.estado === 'Verificado' ? '#dcfce7; color:#166534' : '#fef9c3; color:#854d0e'};">
+              ${rep.estado} (${rep.verificadoPor})
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              ${(usuarioActivo && (usuarioActivo.role === 'SUPERVISOR' || usuarioActivo.role === 'COORDINADOR' || usuarioActivo.role === 'ADMIN')) ? `
+                <button class="btn btn-success" style="padding:4px 7px; font-size:11px;" onclick="aprobarReporte(${rep.id})">Aprobar</button>
+              ` : ''}
+              <button class="btn btn-primary" style="padding:4px 7px; font-size:11px;" onclick="imprimirReporteIndividual(${rep.id})">Imprimir</button>
+              <button class="btn btn-danger" style="padding:4px 7px; font-size:11px;" onclick="eliminarReporte(${rep.id})">Borrar</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function aprobarReporte(id) {
+      const idx = reportes.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        reportes[idx].estado = 'Verificado';
+        reportes[idx].verificadoPor = usuarioActivo.name;
+        localStorage.setItem('cantv_reportes_db_v3', JSON.stringify(reportes));
+        renderizarSupervision();
+        alert('Reporte verificado con firma formal.');
+      }
+    }
+
+    function eliminarReporte(id) {
+      const rep = reportes.find(r => r.id === id);
+      if (!rep) return;
+
+      if (confirm(`¿Deseas eliminar el reporte ${rep.numero} de ${rep.central}?`)) {
+        reportes = reportes.filter(r => r.id !== id);
+        localStorage.setItem('cantv_reportes_db_v3', JSON.stringify(reportes));
+        actualizarBadge();
+        renderizarSupervision();
+        alert('Reporte eliminado.');
+      }
+    }
+
+    function renderizarSolicitudesRecuperacion() {
+      const box = document.getElementById('contenedorSolicitudesRecuperacion');
+      if (solicitudesRecuperacion.length === 0) {
+        box.innerHTML = '<p style="font-size:12px; color:#78350f; margin:0;">No hay solicitudes de recuperación pendientes en este momento.</p>';
+        return;
+      }
+
+      let html = '<div class="table-responsive"><table style="margin-top:6px; background:#fff;"><thead><tr><th>Fecha</th><th>Usuario</th><th>Rol</th><th>Mensaje</th><th style="width:140px;">Acción</th></tr></thead><tbody>';
+      solicitudesRecuperacion.forEach(s => {
+        html += `
+          <tr>
+            <td>${s.fecha}</td>
+            <td><strong>${s.userName}</strong></td>
+            <td>${s.role}</td>
+            <td>${s.motivo}</td>
+            <td>
+              <button class="btn btn-warning" style="padding:3px 7px; font-size:11px;" onclick="atenderSolicitud(${s.id}, ${s.userId})">Asignar Clave</button>
+              <button class="btn btn-danger" style="padding:3px 7px; font-size:11px;" onclick="descartarSolicitud(${s.id})">x</button>
+            </td>
+          </tr>
+        `;
+      });
+      html += '</tbody></table></div>';
+      box.innerHTML = html;
+    }
+
+    function atenderSolicitud(solicitudId, userId) {
+      const u = usuarios.find(x => x.id === userId);
+      if (!u) return;
+
+      const nueva = prompt(`Restablecer contraseña para ${u.name}:\nIngresa la nueva contraseña:`, '1234');
+      if (nueva !== null && nueva.trim() !== '') {
+        u.pass = nueva.trim();
+        solicitudesRecuperacion = solicitudesRecuperacion.filter(s => s.id !== solicitudId);
+        localStorage.setItem('cantv_usuarios_db_v5', JSON.stringify(usuarios));
+        localStorage.setItem('cantv_solicitudes_recup_v3', JSON.stringify(solicitudesRecuperacion));
+        renderizarAdminUsuarios();
+        renderizarSolicitudesRecuperacion();
+        alert(`Clave restablecida a: "${nueva.trim()}".`);
+      }
+    }
+
+    function descartarSolicitud(solicitudId) {
+      if (confirm('¿Descartar esta solicitud de recuperación?')) {
+        solicitudesRecuperacion = solicitudesRecuperacion.filter(s => s.id !== solicitudId);
+        localStorage.setItem('cantv_solicitudes_recup_v3', JSON.stringify(solicitudesRecuperacion));
+        renderizarSolicitudesRecuperacion();
+      }
+    }
+
+    function cambioRolAdmin() {
+      const rol = document.getElementById('adminNewRole').value;
+      const grp = document.getElementById('grpAdminSupervisor');
+      grp.style.display = (rol === 'TECNICO' || rol === 'ESPECIALISTA') ? 'flex' : 'none';
+    }
+
+    function adminCrearUsuario() {
+      const name = document.getElementById('adminNewName').value.trim().toUpperCase();
+      const role = document.getElementById('adminNewRole').value;
+      const pass = document.getElementById('adminNewPass').value.trim();
+      let supervisor = 'N/A';
+
+      if (!name || !pass) {
+        alert('Ingresa el nombre y la contraseña');
+        return;
+      }
+
+      if (role === 'TECNICO' || role === 'ESPECIALISTA') {
+        supervisor = document.getElementById('adminNewSup').value;
+      } else if (role === 'SUPERVISOR') {
+        supervisor = 'Supervisión de Área';
+      } else if (role === 'COORDINADOR') {
+        supervisor = 'Coordinación General';
+      }
+
+      const nuevo = {
+        id: Date.now(),
+        name,
+        role,
+        supervisor,
+        pass
+      };
+
+      usuarios.push(nuevo);
+      localStorage.setItem('cantv_usuarios_db_v5', JSON.stringify(usuarios));
+      poblarSelectLogin();
+      renderizarAdminUsuarios();
+      document.getElementById('adminNewName').value = '';
+      alert('Personal registrado exitosamente.');
+    }
+
+    function renderizarAdminUsuarios() {
+      const tbody = document.getElementById('tblAdminUsersBody');
+      tbody.innerHTML = '';
+
+      usuarios.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${u.name}</strong></td>
+          <td><span style="font-weight:700; font-size:11px;">${u.role}</span></td>
+          <td>${u.supervisor}</td>
+          <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:monospace;">${u.pass}</span></td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <button class="btn btn-warning" style="padding:3px 6px; font-size:11px;" onclick="adminResetClave(${u.id})">Reset Clave</button>
+              <button class="btn btn-danger" style="padding:3px 6px; font-size:11px;" onclick="adminEliminarUsuario(${u.id})">Eliminar</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function adminResetClave(id) {
+      const u = usuarios.find(x => x.id === id);
+      if (!u) return;
+
+      const nueva = prompt(`Nueva clave para ${u.name}:`, '1234');
+      if (nueva !== null && nueva.trim() !== '') {
+        u.pass = nueva.trim();
+        localStorage.setItem('cantv_usuarios_db_v5', JSON.stringify(usuarios));
+        renderizarAdminUsuarios();
+        alert(`Clave de ${u.name} cambiada a "${u.pass}".`);
+      }
+    }
+
+    function adminEliminarUsuario(id) {
+      const u = usuarios.find(x => x.id === id);
+      if (!u) return;
+
+      if (confirm(`¿Eliminar definitivamente a ${u.name}?`)) {
+        usuarios = usuarios.filter(x => x.id !== id);
+        localStorage.setItem('cantv_usuarios_db_v5', JSON.stringify(usuarios));
+        poblarSelectLogin();
+        renderizarAdminUsuarios();
+        alert('Usuario eliminado.');
+      }
+    }
+
+    function imprimirReporteIndividual(id) {
+      const rep = reportes.find(r => r.id === id);
+      if (!rep) return;
+
+      const printDiv = document.getElementById('printAreaIsolated');
+      printDiv.style.display = 'block';
+
+      let filasPiezas = '';
+      if (rep.elementos && rep.elementos.length > 0) {
+        rep.elementos.forEach((el, i) => {
+          filasPiezas += `<tr><td>${i+1}</td><td>${el.cant}</td><td class="print-box-text">${el.desc}</td><td class="print-box-text">${el.ubic}</td></tr>`;
+        });
+      } else {
+        filasPiezas = '<tr><td colspan="4" style="text-align:center;">No hubo elementos reemplazados.</td></tr>';
+      }
+
+      let galeriaHtml = '';
+      if (rep.fotos && rep.fotos.length > 0) {
+        rep.fotos.forEach((f) => {
+          galeriaHtml += `
+            <div style="width:47%; border:1px solid #222; padding:5px; text-align:center; margin-bottom:10px; background:#fff;">
+              <img src="${f.src}" style="max-height:160px; max-width:100%; object-fit:contain; display:block; margin:0 auto;">
+              <div style="font-size:10px; font-weight:bold; margin-top:5px; color:#111;">${f.desc}</div>
+            </div>
+          `;
+        });
+      }
+
+      printDiv.innerHTML = `
+        <div class="page-cantv">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
+            <div>
+              <div style="font-size:22px; font-weight:900; letter-spacing:-1px;">cantv</div>
+              <div style="font-size:13px; font-weight:bold;">REPORTE DE VISITA - INSPECCIÓN CPSIHA</div>
+            </div>
+            <div style="text-align:right; font-size:12px;">
+              <div><strong>N° REPORTE:</strong> ${rep.numero}</div>
+              <div><strong>FECHA:</strong> ${rep.fecha}</div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;" class="print-box-text"><strong>INSTALACIÓN:</strong> ${rep.central}</div>
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;" class="print-box-text">
+            <strong>ESPECIALISTA / TÉCNICO:</strong> ${rep.tecnico} &nbsp;|&nbsp;
+            <strong>SUPERVISIÓN:</strong> ${rep.supervisorAsignado}
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;" class="print-box-text">
+            <strong>TIPO DE ACTIVIDAD:</strong> ${rep.actividades && rep.actividades.length ? rep.actividades.join(' • ') : 'N/A'}
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;" class="print-box-text">
+            <strong>TIPO DE SISTEMA:</strong> ${rep.sistemas && rep.sistemas.length ? rep.sistemas.join(' • ') : 'N/A'} &nbsp;|&nbsp;
+            <strong>MODELO DE CENTRAL:</strong> ${rep.modelos && rep.modelos.length ? rep.modelos.join(' • ') : 'N/A'}
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;">
+            <strong>TRABAJOS REALIZADOS / OBSERVACIONES:</strong>
+            <div class="print-box-text">${rep.trabajos || 'Sin observaciones asentadas.'}</div>
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;">
+            <strong>ACCIONES PENDIENTES:</strong>
+            <div class="print-box-text">${rep.pendientes || 'Sin pendientes registrados.'}</div>
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:5px;" class="print-box-text">
+            <strong>CONDICIONES FINALES:</strong> ${rep.condiciones && rep.condiciones.length ? rep.condiciones.join(' • ') : 'N/A'}
+          </div>
+
+          <div style="border:1px solid #000; padding:5px; margin-bottom:8px;">
+            <strong>ELEMENTOS REEMPLAZADOS:</strong>
+            <table style="width:100%; border-collapse:collapse; margin-top:4px; font-size:11px;" border="1">
+              <thead>
+                <tr style="background:#eee;">
+                  <th style="width:40px;">ITEM</th>
+                  <th style="width:50px;">CANT</th>
+                  <th>DESCRIPCIÓN</th>
+                  <th>UBICACIÓN</th>
+                </tr>
+              </thead>
+              <tbody>${filasPiezas}</tbody>
+            </table>
+          </div>
+
+          <div style="display:flex; justify-content:space-around; margin-top:20px; text-align:center; font-size:11px;">
+            <div>
+              <div>__________________________________</div>
+              <strong>ESPECIALISTA QUE EJECUTÓ</strong><br>
+              ${rep.tecnico}
+            </div>
+            <div>
+              <div>__________________________________</div>
+              <strong>VERIFICADO POR (SUPERVISIÓN)</strong><br>
+              ${rep.verificadoPor}
+            </div>
+          </div>
+
+          ${galeriaHtml ? `
+            <div style="border:1px solid #000; padding:6px; margin-top:15px;">
+              <strong>REPORTE FOTOGRÁFICO:</strong>
+              <div style="display:flex; flex-wrap:wrap; justify-content:space-between; margin-top:6px;">${galeriaHtml}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      setTimeout(() => {
+        window.print();
+        printDiv.style.display = 'none';
+        printDiv.innerHTML = '';
+      }, 250);
+    }
+  </script>
+</body>
+</html>
